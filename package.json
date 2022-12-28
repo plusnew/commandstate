@@ -1,0 +1,30 @@
+{
+	"name": "@plusnew/router",
+	"version": "2.4.0",
+	"description": "typesafe router for plusnew",
+	"main": "src/index.ts",
+	"module": "src/index.ts",
+	"scripts": {
+		"prepublishOnly": "yarn run test",
+		"test": "web-test-runner  --coverage",
+		"test:watch": "web-test-runner --watch --coverage"
+	},
+	"keywords": [
+		"plusnew"
+	],
+	"author": "Carlo Jeske",
+	"devDependencies": {
+		"@esm-bundle/chai": "^4.3.4-fix.0",
+		"@plusnew/core": "^1.6.3",
+		"@plusnew/driver-dom": "^1.4.0",
+		"@typescript-eslint/eslint-plugin": "^5.30.6",
+		"@typescript-eslint/parser": "^5.30.6",
+		"@web/dev-server-esbuild": "^0.3.1",
+		"@web/test-runner": "^0.13.31",
+		"eslint": "^8.19.0",
+		"eslint-config-prettier": "^8.5.0",
+		"eslint-plugin-prettier": "^4.2.1",
+		"prettier": "^2.7.1",
+		"typescript": "^4.7.4"
+	}
+}
