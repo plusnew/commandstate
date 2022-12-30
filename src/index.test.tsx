@@ -1,45 +1,119 @@
 import plusnew from "@plusnew/core";
 import "@plusnew/driver-dom";
 import driver from "@plusnew/driver-dom";
-import { entity } from "./index";
+import { entity, Branch, Repository, Merge } from "../index";
+import { expect } from "@esm-bundle/chai";
 
 describe("api", () => {
   it("map handling", () => {
     const container = document.createElement("div");
-    const Entity = entity<
-      { id: number; value: number },
-      number,
-      { id: number; type: "increment" | "something" }
-    >(() => ({
-      mount: ({ parameter }) => ({ id: parameter, value: parameter }),
-      reduce: ({ state, event, parameter }) => {
-        if (event.id === parameter) {
-          switch (event.type) {
-            case "increment":
-              return { id: state.id, value: state.value + 1 };
+    class Increment {
+      public payload: { id: number };
+      constructor(id: number) {
+        this.payload = { id };
+      }
+    }
+    const Entity = entity<{ id: number; value: number }, number, Increment>(
+      () => ({
+        mount: ({ parameter }) => ({ id: parameter, value: parameter }),
+        reduce: ({ state, event, parameter }) => {
+          if (event instanceof Increment && event.payload.id === parameter) {
+            return { id: state.id, value: state.value + 1 };
           }
-        }
-        return state;
-      },
-    }));
+          return state;
+        },
+      })
+    );
 
     const component = plusnew.render(
-      <Entity parameters={[0, 2]}>
-        {({ views, dispatch }) =>
-          views.map((view) => (
-            <span
-              onclick={() => dispatch([{ id: view.id, type: "increment" }])}
-              data-test-id={view.id}
-            >
-              {view.value}
-            </span>
-          ))
-        }
-      </Entity>,
+      <Repository>
+        <section data-test-id="branched">
+          <Branch>
+            <Entity parameters={[0, 5]}>
+              {({ views, dispatch }) =>
+                views.map((view) => (
+                  <button
+                    onclick={() => dispatch([new Increment(view.id)])}
+                    data-test-id={view.id}
+                  >
+                    {view.value}
+                  </button>
+                ))
+              }
+            </Entity>
+            <Merge>
+              {({ events, merge }) => (
+                <button onclick={() => merge(events)} data-test-id="submit" />
+              )}
+            </Merge>
+          </Branch>
+        </section>
+        <section data-test-id="branchless">
+          <Entity parameters={[0, 5]}>
+            {({ views, dispatch }) =>
+              views.map((view) => (
+                <button
+                  onclick={() => dispatch([new Increment(view.id)])}
+                  data-test-id={view.id}
+                >
+                  {view.value}
+                </button>
+              ))
+            }
+          </Entity>
+        </section>
+      </Repository>,
       {
         driver: driver(container),
       }
     );
+
+    const branchedSection = container.querySelector(
+      '[data-test-id="branched"]'
+    ) as Element;
+    const branchedFirstButton = branchedSection.querySelector(
+      '[data-test-id="0"'
+    ) as Element;
+    const branchedSecondButton = branchedSection.querySelector(
+      '[data-test-id="5"'
+    ) as Element;
+    const branchlessSection = container.querySelector(
+      '[data-test-id="branchless"]'
+    ) as Element;
+    const branchlessFirstButton = branchlessSection.querySelector(
+      '[data-test-id="0"'
+    ) as Element;
+    const branchlessSecondButton = branchlessSection.querySelector(
+      '[data-test-id="5"'
+    ) as Element;
+
+    expect(branchedFirstButton.textContent).to.equal("0");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("0");
+    expect(branchlessSecondButton.textContent).to.equal("5");
+
+    branchedFirstButton.dispatchEvent(new MouseEvent("click"));
+
+    expect(branchedFirstButton.textContent).to.equal("1");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("0");
+    expect(branchlessSecondButton.textContent).to.equal("5");
+
+    branchlessFirstButton.dispatchEvent(new MouseEvent("click"));
+
+    expect(branchedFirstButton.textContent).to.equal("2");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("1");
+    expect(branchlessSecondButton.textContent).to.equal("5");
+
+    (
+      branchedSection.querySelector('[data-test-id="submit"]') as Element
+    ).dispatchEvent(new MouseEvent("click"));
+
+    expect(branchedFirstButton.textContent).to.equal("2");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("2");
+    expect(branchlessSecondButton.textContent).to.equal("5");
 
     component.remove(false);
   });
