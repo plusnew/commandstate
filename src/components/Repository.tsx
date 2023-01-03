@@ -1,6 +1,9 @@
 import type { Props } from "@plusnew/core";
 import plusnew, { component } from "@plusnew/core";
-import type { EntityHandler } from "../context/dataContext";
+import type {
+  EntityHandler,
+  EntityHandlerFactory,
+} from "../context/dataContext";
 import dataContext from "../context/dataContext";
 
 type props = { children: any };
@@ -14,8 +17,12 @@ export default component("Repository", (Props: Props<props>) => {
     EntityHandler<any, any>,
     EntityHandlerRepository<any>
   >();
+  const entityHandlers = new Map<
+    EntityHandlerFactory<any, any>,
+    EntityHandler<any, any>
+  >();
   const events: any[] = [];
-  const onchangeCallbacks: (() => void)[] = [];
+  let onchangeCallbacks: (() => void)[] = [];
 
   return (
     <dataContext.Provider
@@ -71,8 +78,22 @@ export default component("Repository", (Props: Props<props>) => {
           }
           return entityHandlerCache[serializedParameter]?.value;
         },
-        onchange: (cb) => {
+        getEntityHandler: (entityHandlerFactory) => {
+          let entityHandler = entityHandlers.get(entityHandlerFactory);
+          if (entityHandler === undefined) {
+            entityHandler = entityHandlerFactory();
+            entityHandlers.set(entityHandlerFactory, entityHandler);
+          }
+
+          return entityHandler;
+        },
+        addOnchangeListener: (cb) => {
           onchangeCallbacks.push(cb);
+        },
+        removeOnchangeListener: (cb) => {
+          onchangeCallbacks = onchangeCallbacks.filter(
+            (onchangeCallback) => onchangeCallback !== cb
+          );
         },
       }}
       dispatch={([type, newEvents]) => {

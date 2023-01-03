@@ -34,7 +34,7 @@ export default class Merge extends Component<props> {
     );
     this.dataContextInstanceDispatch = dataContextInstance.dispatch;
     this.dataContextInstanceState = dataContextInstance.getState();
-    this.dataContextInstanceState.onchange(this.onchangeCallback.bind(this));
+    this.dataContextInstanceState.addOnchangeListener(this.onchangeCallback.bind(this));
   }
 
   private onchangeCallback = () => {

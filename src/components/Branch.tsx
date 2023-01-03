@@ -17,10 +17,15 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
     dataContextProviderInstance.getState();
   const state = new Map<EntityHandler<any, any>, EntityHandlerBranch<any>>();
   let events: unknown[] = [];
-  const onchangeCallbacks: (() => void)[] = [];
-  dataContextProviderInstanceState.onchange(() => {
+  let onchangeCallbacks: (() => void)[] = [];
+  const onchangeCallback = () => {
     onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
-  });
+  };
+  dataContextProviderInstanceState.addOnchangeListener(onchangeCallback);
+
+  componentInstance.registerLifecycleHook("componentWillUnmount", () =>
+    dataContextProviderInstanceState.removeOnchangeListener(onchangeCallback)
+  );
 
   return (
     <dataContext.Provider
@@ -89,8 +94,14 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
           }
           return entityHandlerCache[serializedParameter]?.value;
         },
-        onchange: (cb) => {
+        getEntityHandler: dataContextProviderInstanceState.getEntityHandler,
+        addOnchangeListener: (cb) => {
           onchangeCallbacks.push(cb);
+        },
+        removeOnchangeListener: (cb) => {
+          onchangeCallbacks = onchangeCallbacks.filter(
+            (onchangeCallback) => onchangeCallback !== cb
+          );
         },
       }}
       dispatch={([type, newEvents]) => {

@@ -37,7 +37,11 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
             forceCacheRefresh: seen === false,
           });
         },
-        onchange: dataContextProviderInstanceState.onchange,
+        getEntityHandler: dataContextProviderInstanceState.getEntityHandler,
+        addOnchangeListener:
+          dataContextProviderInstanceState.addOnchangeListener,
+        removeOnchangeListener:
+          dataContextProviderInstanceState.removeOnchangeListener,
       }}
       dispatch={dataContextProviderInstance.dispatch}
     >

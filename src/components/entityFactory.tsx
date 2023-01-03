@@ -5,10 +5,13 @@ import type {
   DataContextAction,
   DataContextState,
   EntityHandler,
+  EntityHandlerFactory,
 } from "../context/dataContext";
 import dataContext from "../context/dataContext";
 
-export default function entity<T, U, V>(cb: () => EntityHandler<T, U>) {
+export default function entity<T, U, V>(
+  entityHandlerFactory: EntityHandlerFactory<T, U>
+) {
   type props = {
     parameters: U[];
     children: (result: {
@@ -17,11 +20,10 @@ export default function entity<T, U, V>(cb: () => EntityHandler<T, U>) {
     }) => ApplicationElement;
   };
 
-  const entityHandler = cb();
-
   return class Entity extends Component<props> {
     displayName = "Entity";
 
+    private entityHandler: EntityHandler<T, U>;
     private componentInstance: ComponentInstance<props, any, any>;
     private dataContextInstanceState: DataContextState;
     private dataContextInstanceDispatch: (action: DataContextAction) => void;
@@ -32,7 +34,7 @@ export default function entity<T, U, V>(cb: () => EntityHandler<T, U>) {
       this.views = this.componentInstance.props.parameters.map(
         (parameter, index) => {
           const view = this.dataContextInstanceState.getState({
-            entityHandler,
+            entityHandler: this.entityHandler,
             parameter,
             forceCacheRefresh: false,
           });
@@ -58,7 +60,17 @@ export default function entity<T, U, V>(cb: () => EntityHandler<T, U>) {
       this.dataContextInstanceState = dataContextInstance.getState();
       this.dataContextInstanceDispatch = dataContextInstance.dispatch;
       this.componentInstance = componentInstance;
-      this.dataContextInstanceState.onchange(this.onchangeCallback.bind(this));
+      this.dataContextInstanceState.addOnchangeListener(
+        this.onchangeCallback.bind(this)
+      );
+      this.entityHandler =
+        this.dataContextInstanceState.getEntityHandler(entityHandlerFactory);
+    }
+
+    componentWillUnmount() {
+      this.dataContextInstanceState.removeOnchangeListener(
+        this.onchangeCallback
+      );
     }
 
     render(Props: Props<props>) {
@@ -69,7 +81,7 @@ export default function entity<T, U, V>(cb: () => EntityHandler<T, U>) {
               {() => {
                 this.views = props.parameters.map((parameter) =>
                   this.dataContextInstanceState.getState({
-                    entityHandler,
+                    entityHandler: this.entityHandler,
                     parameter,
                     forceCacheRefresh: false,
                   })
