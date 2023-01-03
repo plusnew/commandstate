@@ -5,7 +5,7 @@
 	"main": "src/index.ts",
 	"module": "src/index.ts",
 	"scripts": {
-		"prepublishOnly": "yarn run test",
+		"prepublishOnly": "web-test-runner  --coverage",
 		"test": "web-test-runner  --coverage",
 		"test:watch": "web-test-runner --watch --coverage"
 	},
