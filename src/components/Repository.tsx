@@ -113,7 +113,7 @@ export default component(
           getEntityHandler: (entityHandlerFactory) => {
             let entityHandler = entityHandlers.get(entityHandlerFactory);
             if (entityHandler === undefined) {
-              entityHandler = entityHandlerFactory();
+              entityHandler = entityHandlerFactory.apply(componentInstance);
               entityHandlers.set(entityHandlerFactory, entityHandler);
             }
 
