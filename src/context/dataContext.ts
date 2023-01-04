@@ -1,13 +1,17 @@
 import { context } from "@plusnew/core";
+import type ComponentInstance from "@plusnew/core/src/instances/types/Component/Instance";
 
 export type EntityHandlerFactory<T, U, V> = () => EntityHandler<T, U, V>;
 
 export type EntityHandler<T, U, V> = {
-  mount: (context: {
-    parameter: U;
-    state: T | null;
-    dispatch: (events: V[]) => void;
-  }) => T;
+  mount: (
+    this: ComponentInstance<any, any, any>,
+    context: {
+      parameter: U;
+      state: T | null;
+      dispatch: (events: V[]) => void;
+    }
+  ) => T;
   reduce: (context: { event: unknown; parameter: U; state: T }) => T;
 };
 
