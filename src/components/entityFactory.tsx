@@ -33,7 +33,7 @@ export default function entity<T, U, V>(
       let somethingChanged = false;
       this.views = this.componentInstance.props.parameters.map(
         (parameter, index) => {
-          const view = this.dataContextInstanceState.getState({
+          const { state: view } = this.dataContextInstanceState.getState({
             entityHandler: this.entityHandler,
             parameter,
             forceCacheRefresh: false,
@@ -79,12 +79,13 @@ export default function entity<T, U, V>(
           {(props) => (
             <this.refresh.Observer>
               {() => {
-                this.views = props.parameters.map((parameter) =>
-                  this.dataContextInstanceState.getState({
-                    entityHandler: this.entityHandler,
-                    parameter,
-                    forceCacheRefresh: false,
-                  })
+                this.views = props.parameters.map(
+                  (parameter) =>
+                    this.dataContextInstanceState.getState({
+                      entityHandler: this.entityHandler,
+                      parameter,
+                      forceCacheRefresh: false,
+                    }).state
                 );
 
                 return ((props.children as any)[0] as props["children"])({

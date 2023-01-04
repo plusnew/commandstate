@@ -1,21 +1,26 @@
 import type { Props } from "@plusnew/core";
 import plusnew, { component } from "@plusnew/core";
 import type {
+  DataContextAction,
   EntityHandler,
   EntityHandlerFactory,
 } from "../context/dataContext";
 import dataContext from "../context/dataContext";
 
 type props = { children: any };
-type EntityHandlerRepositoryValue<T> = { index: number; value: T };
-type EntityHandlerRepository<T> = {
-  [parameter: string]: EntityHandlerRepositoryValue<T> | undefined;
+type EntityHandlerRepositoryValue<T, U> = {
+  originalParameter: U;
+  index: number;
+  value: T;
+};
+type EntityHandlerRepository<T, U> = {
+  [parameter: string]: EntityHandlerRepositoryValue<T, U> | undefined;
 };
 
 export default component("Repository", (Props: Props<props>) => {
   const state = new Map<
     EntityHandler<any, any>,
-    EntityHandlerRepository<any>
+    EntityHandlerRepository<any, any>
   >();
   const entityHandlers = new Map<
     EntityHandlerFactory<any, any>,
@@ -23,7 +28,14 @@ export default component("Repository", (Props: Props<props>) => {
   >();
   const events: any[] = [];
   let onchangeCallbacks: (() => void)[] = [];
-
+  const dispatch: (events: DataContextAction) => void = ([type, newEvents]) => {
+    if (type === "commit") {
+      events.push(...newEvents);
+      onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
+    } else {
+      throw new Error("The repository cant " + type);
+    }
+  };
   return (
     <dataContext.Provider
       state={{
@@ -39,11 +51,16 @@ export default component("Repository", (Props: Props<props>) => {
             serializedParameter in entityHandlerCache === false ||
             request.forceCacheRefresh
           ) {
+            const originalParameter =
+              entityHandlerCache[serializedParameter]?.originalParameter ??
+              request.parameter;
             entityHandlerCache[serializedParameter] = {
+              originalParameter,
               index: events.length,
               value: request.entityHandler.mount({
-                parameter: request.parameter,
+                parameter: originalParameter,
                 state: entityHandlerCache[serializedParameter]?.value ?? null,
+                dispatch,
               }),
             };
           }
@@ -52,31 +69,41 @@ export default component("Repository", (Props: Props<props>) => {
             (
               entityHandlerCache[
                 serializedParameter
-              ] as EntityHandlerRepositoryValue<any>
+              ] as EntityHandlerRepositoryValue<any, any>
             ).index < events.length
           ) {
             entityHandlerCache[serializedParameter] = {
+              originalParameter: (
+                entityHandlerCache[
+                  serializedParameter
+                ] as EntityHandlerRepositoryValue<any, any>
+              ).originalParameter,
               index:
                 (
                   entityHandlerCache[
                     serializedParameter
-                  ] as EntityHandlerRepositoryValue<any>
+                  ] as EntityHandlerRepositoryValue<any, any>
                 ).index + 1,
               value: request.entityHandler.reduce({
-                parameter: request.parameter,
+                parameter:
+                  entityHandlerCache[serializedParameter]?.originalParameter,
                 state: entityHandlerCache[serializedParameter]?.value ?? null,
                 event:
                   events[
                     (
                       entityHandlerCache[
                         serializedParameter
-                      ] as EntityHandlerRepositoryValue<any>
+                      ] as EntityHandlerRepositoryValue<any, any>
                     ).index
                   ],
               }),
             };
           }
-          return entityHandlerCache[serializedParameter]?.value;
+          return {
+            state: entityHandlerCache[serializedParameter]?.value,
+            originalParameter:
+              entityHandlerCache[serializedParameter]?.originalParameter,
+          };
         },
         getEntityHandler: (entityHandlerFactory) => {
           let entityHandler = entityHandlers.get(entityHandlerFactory);
@@ -96,14 +123,7 @@ export default component("Repository", (Props: Props<props>) => {
           );
         },
       }}
-      dispatch={([type, newEvents]) => {
-        if (type === "commit") {
-          events.push(...newEvents);
-          onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
-        } else {
-          throw new Error("The repository cant " + type);
-        }
-      }}
+      dispatch={dispatch}
     >
       <Props>{(props) => props.children}</Props>
     </dataContext.Provider>

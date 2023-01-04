@@ -32,7 +32,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
       state={{
         events: events,
         getState: (request) => {
-          const parentValue =
+          const parentState =
             dataContextProviderInstanceState.getState(request);
           let entityHandlerCache = state.get(request.entityHandler);
           if (entityHandlerCache === undefined) {
@@ -46,16 +46,14 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
           ) {
             entityHandlerCache[serializedParameter] = {
               index: events.length,
-              value: request.entityHandler.mount({
-                parameter: request.parameter,
-                state: entityHandlerCache[serializedParameter]?.value ?? null,
-              }),
-              parentValue,
+              value: parentState.state,
+              parentValue: parentState.state,
             };
           }
 
           if (
-            entityHandlerCache[serializedParameter]?.parentValue !== parentValue
+            entityHandlerCache[serializedParameter]?.parentValue !==
+            parentState.state
           ) {
             (
               entityHandlerCache[
@@ -78,7 +76,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
                   ] as EntityHandlerBranchValue<any>
                 ).index + 1,
               value: request.entityHandler.reduce({
-                parameter: request.parameter,
+                parameter: parentState.originalParameter,
                 state: entityHandlerCache[serializedParameter]?.value ?? null,
                 event:
                   events[
@@ -89,10 +87,13 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
                     ).index
                   ],
               }),
-              parentValue,
+              parentValue: parentState.state,
             };
           }
-          return entityHandlerCache[serializedParameter]?.value;
+          return {
+            state: entityHandlerCache[serializedParameter]?.value,
+            originalParameter: parentState.originalParameter,
+          };
         },
         getEntityHandler: dataContextProviderInstanceState.getEntityHandler,
         addOnchangeListener: (cb) => {

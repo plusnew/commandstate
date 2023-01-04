@@ -13,23 +13,25 @@ describe("api", () => {
         this.payload = { id };
       }
     }
-    const Entity = entity<{ id: number; value: number }, number, Increment>(
-      () => ({
-        mount: ({ parameter }) => ({ id: parameter, value: parameter }),
-        reduce: ({ state, event, parameter }) => {
-          if (event instanceof Increment && event.payload.id === parameter) {
-            return { id: state.id, value: state.value + 1 };
-          }
-          return state;
-        },
-      })
-    );
+    const Entity = entity<
+      { id: number; value: number },
+      { id: number },
+      Increment
+    >(() => ({
+      mount: ({ parameter }) => ({ id: parameter.id, value: parameter.id }),
+      reduce: ({ state, event, parameter }) => {
+        if (event instanceof Increment && event.payload.id === parameter.id) {
+          return { id: state.id, value: state.value + 1 };
+        }
+        return state;
+      },
+    }));
 
     const component = plusnew.render(
       <Repository>
         <section data-test-id="branched">
           <Branch>
-            <Entity parameters={[0, 5]}>
+            <Entity parameters={[{ id: 0 }, { id: 5 }]}>
               {({ views, dispatch }) =>
                 views.map((view) => (
                   <button
@@ -49,7 +51,7 @@ describe("api", () => {
           </Branch>
         </section>
         <section data-test-id="branchless">
-          <Entity parameters={[0, 5]}>
+          <Entity parameters={[{ id: 0 }, { id: 5 }]}>
             {({ views, dispatch }) =>
               views.map((view) => (
                 <button

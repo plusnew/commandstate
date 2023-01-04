@@ -3,7 +3,11 @@ import { context } from "@plusnew/core";
 export type EntityHandlerFactory<T, U> = () => EntityHandler<T, U>;
 
 export type EntityHandler<T, U> = {
-  mount: (context: { parameter: U; state: T | null }) => T;
+  mount: (context: {
+    parameter: U;
+    state: T | null;
+    dispatch: (events: DataContextAction) => void;
+  }) => T;
   reduce: (context: { event: unknown; parameter: U; state: T }) => T;
 };
 
@@ -12,7 +16,7 @@ export type DataContextState = {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
     forceCacheRefresh: boolean;
-  }) => T;
+  }) => { state: T; originalParameter: U };
   getEntityHandler: <T, U>(
     entityHandlerFactory: EntityHandlerFactory<T, U>
   ) => EntityHandler<T, U>;

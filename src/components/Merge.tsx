@@ -1,10 +1,7 @@
 import type { ApplicationElement, Props } from "@plusnew/core";
 import plusnew, { Component, store } from "@plusnew/core";
 import type ComponentInstance from "@plusnew/core/src/instances/types/Component/Instance";
-import type {
-  DataContextAction,
-  DataContextState,
-} from "../context/dataContext";
+import type { DataContextAction } from "../context/dataContext";
 import dataContext from "../context/dataContext";
 
 type props = {
@@ -17,8 +14,6 @@ type props = {
 export default class Merge extends Component<props> {
   displayName = "merge";
 
-  private componentInstance: ComponentInstance<props, any, any>;
-  private dataContextInstanceState: DataContextState;
   private dataContextInstanceDispatch: (action: DataContextAction) => void;
   private events = store<unknown[]>([]);
 
@@ -28,18 +23,20 @@ export default class Merge extends Component<props> {
   ) {
     super(props, componentInstance);
 
-    this.componentInstance = componentInstance;
     const dataContextInstance = dataContext.findProvider(
       componentInstance as any
     );
     this.dataContextInstanceDispatch = dataContextInstance.dispatch;
-    this.dataContextInstanceState = dataContextInstance.getState();
-    this.dataContextInstanceState.addOnchangeListener(this.onchangeCallback.bind(this));
-  }
+    const dataContextProviderInstanceState = dataContextInstance.getState();
 
-  private onchangeCallback = () => {
-    this.events.dispatch(this.dataContextInstanceState.events);
-  };
+    const onchangeCallback = () => {
+      this.events.dispatch(dataContextProviderInstanceState.events);
+    };
+    dataContextProviderInstanceState.addOnchangeListener(onchangeCallback);
+    componentInstance.registerLifecycleHook("componentWillUnmount", () =>
+      dataContextProviderInstanceState.removeOnchangeListener(onchangeCallback)
+    );
+  }
 
   render(Props: Props<props>) {
     return (
