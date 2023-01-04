@@ -45,25 +45,18 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
           const serializedParameter = JSON.stringify(request.parameter);
           if (
             entityHandlerCache[serializedParameter] === undefined ||
-            request.forceCacheRefresh
+            entityHandlerCache[serializedParameter]?.value !== parentState.state
           ) {
             entityHandlerCache[serializedParameter] = {
-              index: events.length,
+              index:
+                entityHandlerCache[serializedParameter] === undefined
+                  ? events.length
+                  : 0,
               value: parentState.state,
               parentValue: parentState.state,
             };
           }
 
-          if (
-            entityHandlerCache[serializedParameter]?.parentValue !==
-            parentState.state
-          ) {
-            (
-              entityHandlerCache[
-                serializedParameter
-              ] as EntityHandlerBranchValue<any>
-            ).index = 0;
-          }
           while (
             (
               entityHandlerCache[

@@ -119,4 +119,103 @@ describe("api", () => {
 
     component.remove(false);
   });
+
+  it("repository first", () => {
+    const container = document.createElement("div");
+    class Increment {
+      public payload: { id: number };
+      constructor(id: number) {
+        this.payload = { id };
+      }
+    }
+    const Entity = entity<
+      { id: number; value: number },
+      { id: number },
+      Increment
+    >(() => ({
+      mount: ({ parameter }) => ({ id: parameter.id, value: parameter.id }),
+      reduce: ({ state, event, parameter }) => {
+        if (event instanceof Increment && event.payload.id === parameter.id) {
+          return { id: state.id, value: state.value + 1 };
+        }
+        return state;
+      },
+    }));
+
+    const component = plusnew.render(
+      <Repository>
+        <section data-test-id="branched">
+          <Branch>
+            <Entity parameters={[{ id: 0 }, { id: 5 }]}>
+              {({ views, dispatch }) =>
+                views.map((view) => (
+                  <button
+                    onclick={() => dispatch([new Increment(view.id)])}
+                    data-test-id={view.id}
+                  >
+                    {view.value}
+                  </button>
+                ))
+              }
+            </Entity>
+            <Merge>
+              {({ events, merge }) => (
+                <button onclick={() => merge(events)} data-test-id="submit" />
+              )}
+            </Merge>
+          </Branch>
+        </section>
+        <section data-test-id="branchless">
+          <Entity parameters={[{ id: 0 }, { id: 5 }]}>
+            {({ views, dispatch }) =>
+              views.map((view) => (
+                <button
+                  onclick={() => dispatch([new Increment(view.id)])}
+                  data-test-id={view.id}
+                >
+                  {view.value}
+                </button>
+              ))
+            }
+          </Entity>
+        </section>
+      </Repository>,
+      {
+        driver: driver(container),
+      }
+    );
+
+    const branchedSection = container.querySelector(
+      '[data-test-id="branched"]'
+    ) as Element;
+    const branchedFirstButton = branchedSection.querySelector(
+      '[data-test-id="0"'
+    ) as Element;
+    const branchedSecondButton = branchedSection.querySelector(
+      '[data-test-id="5"'
+    ) as Element;
+    const branchlessSection = container.querySelector(
+      '[data-test-id="branchless"]'
+    ) as Element;
+    const branchlessFirstButton = branchlessSection.querySelector(
+      '[data-test-id="0"'
+    ) as Element;
+    const branchlessSecondButton = branchlessSection.querySelector(
+      '[data-test-id="5"'
+    ) as Element;
+
+    expect(branchedFirstButton.textContent).to.equal("0");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("0");
+    expect(branchlessSecondButton.textContent).to.equal("5");
+
+    branchlessFirstButton.dispatchEvent(new MouseEvent("click"));
+
+    expect(branchedFirstButton.textContent).to.equal("1");
+    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchlessFirstButton.textContent).to.equal("1");
+    expect(branchlessSecondButton.textContent).to.equal("5");
+
+    component.remove(false);
+  });
 });
