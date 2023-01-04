@@ -15,7 +15,10 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
     dataContext.findProvider(componentInstance);
   const dataContextProviderInstanceState =
     dataContextProviderInstance.getState();
-  const state = new Map<EntityHandler<any, any>, EntityHandlerBranch<any>>();
+  const state = new Map<
+    EntityHandler<any, any, any>,
+    EntityHandlerBranch<any>
+  >();
   let events: unknown[] = [];
   let onchangeCallbacks: (() => void)[] = [];
   const onchangeCallback = () => {

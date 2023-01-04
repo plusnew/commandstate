@@ -12,7 +12,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
     dataContextProviderInstance.getState();
 
   const cacheGuardSeen = new Map<
-    EntityHandler<any, any>,
+    EntityHandler<any, any, any>,
     { [serializedParameter: string]: boolean }
   >();
   return (
