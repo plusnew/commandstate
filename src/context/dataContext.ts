@@ -1,25 +1,25 @@
 import { context } from "@plusnew/core";
 
-export type EntityHandlerFactory<T, U> = () => EntityHandler<T, U>;
+export type EntityHandlerFactory<T, U, V> = () => EntityHandler<T, U, V>;
 
-export type EntityHandler<T, U> = {
+export type EntityHandler<T, U, V> = {
   mount: (context: {
     parameter: U;
     state: T | null;
-    dispatch: (events: DataContextAction) => void;
+    dispatch: (events: V[]) => void;
   }) => T;
   reduce: (context: { event: unknown; parameter: U; state: T }) => T;
 };
 
 export type DataContextState = {
-  getState: <T, U>(request: {
-    entityHandler: EntityHandler<T, U>;
+  getState: <T, U, V>(request: {
+    entityHandler: EntityHandler<T, U, V>;
     parameter: U;
     forceCacheRefresh: boolean;
   }) => { state: T; originalParameter: U };
-  getEntityHandler: <T, U>(
-    entityHandlerFactory: EntityHandlerFactory<T, U>
-  ) => EntityHandler<T, U>;
+  getEntityHandler: <T, U, V>(
+    entityHandlerFactory: EntityHandlerFactory<T, U, V>
+  ) => EntityHandler<T, U, V>;
   events: unknown[];
   addOnchangeListener: (cb: () => void) => void;
   removeOnchangeListener: (cb: () => void) => void;

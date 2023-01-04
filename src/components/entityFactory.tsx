@@ -10,7 +10,7 @@ import type {
 import dataContext from "../context/dataContext";
 
 export default function entity<T, U, V>(
-  entityHandlerFactory: EntityHandlerFactory<T, U>
+  entityHandlerFactory: EntityHandlerFactory<T, U, V>
 ) {
   type props = {
     parameters: U[];
@@ -23,7 +23,7 @@ export default function entity<T, U, V>(
   return class Entity extends Component<props> {
     displayName = "Entity";
 
-    private entityHandler: EntityHandler<T, U>;
+    private entityHandler: EntityHandler<T, U, V>;
     private componentInstance: ComponentInstance<props, any, any>;
     private dataContextInstanceState: DataContextState;
     private dataContextInstanceDispatch: (action: DataContextAction) => void;

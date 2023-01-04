@@ -19,12 +19,12 @@ type EntityHandlerRepository<T, U> = {
 
 export default component("Repository", (Props: Props<props>) => {
   const state = new Map<
-    EntityHandler<any, any>,
+    EntityHandler<any, any, any>,
     EntityHandlerRepository<any, any>
   >();
   const entityHandlers = new Map<
-    EntityHandlerFactory<any, any>,
-    EntityHandler<any, any>
+    EntityHandlerFactory<any, any, any>,
+    EntityHandler<any, any, any>
   >();
   const events: any[] = [];
   let onchangeCallbacks: (() => void)[] = [];
@@ -60,7 +60,7 @@ export default component("Repository", (Props: Props<props>) => {
               value: request.entityHandler.mount({
                 parameter: originalParameter,
                 state: entityHandlerCache[serializedParameter]?.value ?? null,
-                dispatch,
+                dispatch: (events) => dispatch(["commit", events]),
               }),
             };
           }
