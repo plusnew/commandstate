@@ -17,6 +17,7 @@ export default function entity<T, U, V>(
     children: (result: {
       views: T[];
       dispatch: (events: V[]) => void;
+      invalidateCache: () => void;
     }) => ApplicationElement;
   };
 
@@ -28,7 +29,7 @@ export default function entity<T, U, V>(
     private dataContextInstanceState: DataContextState;
     private dataContextInstanceDispatch: (action: DataContextAction) => void;
     private refresh = store(0);
-    private views: any[] = [];
+    private views: any[];
     private onchangeCallback = () => {
       let somethingChanged = false;
       this.views = this.componentInstance.props.parameters.map(
@@ -60,11 +61,19 @@ export default function entity<T, U, V>(
       this.dataContextInstanceState = dataContextInstance.getState();
       this.dataContextInstanceDispatch = dataContextInstance.dispatch;
       this.componentInstance = componentInstance;
+      this.entityHandler =
+        this.dataContextInstanceState.getEntityHandler(entityHandlerFactory);
+      this.views = props.parameters.map(
+        (parameter) =>
+          this.dataContextInstanceState.getState({
+            entityHandler: this.entityHandler,
+            parameter,
+            forceCacheRefresh: false,
+          }).state
+      );
       this.dataContextInstanceState.addOnchangeListener(
         this.onchangeCallback.bind(this)
       );
-      this.entityHandler =
-        this.dataContextInstanceState.getEntityHandler(entityHandlerFactory);
     }
 
     componentWillUnmount() {
@@ -78,22 +87,21 @@ export default function entity<T, U, V>(
         <Props>
           {(props) => (
             <this.refresh.Observer>
-              {() => {
-                this.views = props.parameters.map(
-                  (parameter) =>
-                    this.dataContextInstanceState.getState({
-                      entityHandler: this.entityHandler,
-                      parameter,
-                      forceCacheRefresh: false,
-                    }).state
-                );
-
-                return ((props.children as any)[0] as props["children"])({
+              {() =>
+                ((props.children as any)[0] as props["children"])({
                   views: this.views,
                   dispatch: (events) =>
                     this.dataContextInstanceDispatch(["commit", events]),
-                });
-              }}
+                  invalidateCache: () =>
+                    props.parameters.map((parameter) =>
+                      this.dataContextInstanceState.getState({
+                        entityHandler: this.entityHandler,
+                        parameter,
+                        forceCacheRefresh: true,
+                      })
+                    ),
+                })
+              }
             </this.refresh.Observer>
           )}
         </Props>

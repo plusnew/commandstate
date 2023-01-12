@@ -104,6 +104,12 @@ export default component(
                 }),
               };
             }
+
+            if (request.forceCacheRefresh) {
+              onchangeCallbacks.forEach((onchangeCallback) =>
+                onchangeCallback()
+              );
+            }
             return {
               state: entityHandlerCache[serializedParameter]?.value,
               originalParameter:

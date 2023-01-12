@@ -1,12 +1,13 @@
-import plusnew from "@plusnew/core";
+import plusnew, { store } from "@plusnew/core";
 import "@plusnew/driver-dom";
 import driver from "@plusnew/driver-dom";
-import { entity, Branch, Repository, Merge } from "../index";
+import { entity, Branch, Repository, Merge, CacheBreaker } from "../index";
 import { expect } from "@esm-bundle/chai";
 
 describe("api", () => {
   it("map handling", () => {
     const container = document.createElement("div");
+
     class Increment {
       public payload: { id: number };
       constructor(id: number) {
@@ -217,5 +218,164 @@ describe("api", () => {
     expect(branchlessSecondButton.textContent).to.equal("5");
 
     component.remove(false);
+  });
+
+  describe("CacheBreaker", () => {
+    it("Request again when cache breaker is present", () => {
+      const container = document.createElement("div");
+      let result = "foo";
+
+      const Entity = entity<string, number, never>(() => ({
+        mount: ({ parameter }) => result + parameter,
+        reduce: ({ state }) => {
+          return state;
+        },
+      }));
+      const show = store(false);
+
+      const component = plusnew.render(
+        <Repository>
+          <section data-test-id="without-cachebreaker">
+            <Entity parameters={[0]}>{({ views: [view] }) => view}</Entity>
+          </section>
+
+          <show.Observer>
+            {(showState) =>
+              showState && (
+                <CacheBreaker>
+                  <section data-test-id="with-cachebreaker">
+                    <Entity parameters={[0]}>
+                      {({ views: [view] }) => view}
+                    </Entity>
+                  </section>
+                </CacheBreaker>
+              )
+            }
+          </show.Observer>
+        </Repository>,
+        {
+          driver: driver(container),
+        }
+      );
+
+      const withoutCachebreaker = container.querySelector(
+        '[data-test-id="without-cachebreaker"]'
+      ) as Element;
+
+      expect(withoutCachebreaker.textContent).to.equal("foo0");
+
+      result = "bar";
+      show.dispatch(true);
+
+      const withCachebreaker = container.querySelector(
+        '[data-test-id="with-cachebreaker"]'
+      ) as Element;
+
+      expect(withoutCachebreaker.textContent).to.equal("bar0");
+      expect(withCachebreaker.textContent).to.equal("bar0");
+
+      component.remove(false);
+    });
+
+    it("Request again when nested cache breaker is present", () => {
+      const container = document.createElement("div");
+      let result = "foo";
+
+      const Entity = entity<string, number, never>(() => ({
+        mount: ({ parameter }) => result + parameter,
+        reduce: ({ state }) => {
+          return state;
+        },
+      }));
+      const show = store(false);
+
+      const component = plusnew.render(
+        <Repository>
+          <CacheBreaker>
+            <section data-test-id="without-cachebreaker">
+              <Entity parameters={[0]}>{({ views: [view] }) => view}</Entity>
+            </section>
+
+            <show.Observer>
+              {(showState) =>
+                showState && (
+                  <CacheBreaker>
+                    <section data-test-id="with-cachebreaker">
+                      <Entity parameters={[0]}>
+                        {({ views: [view] }) => view}
+                      </Entity>
+                    </section>
+                  </CacheBreaker>
+                )
+              }
+            </show.Observer>
+          </CacheBreaker>
+        </Repository>,
+        {
+          driver: driver(container),
+        }
+      );
+
+      const withoutCachebreaker = container.querySelector(
+        '[data-test-id="without-cachebreaker"]'
+      ) as Element;
+
+      expect(withoutCachebreaker.textContent).to.equal("foo0");
+
+      result = "bar";
+      show.dispatch(true);
+
+      const withCachebreaker = container.querySelector(
+        '[data-test-id="with-cachebreaker"]'
+      ) as Element;
+
+      expect(withoutCachebreaker.textContent).to.equal("bar0");
+      expect(withCachebreaker.textContent).to.equal("bar0");
+
+      component.remove(false);
+    });
+
+    it("Request again with cacheInvalidation", () => {
+      const container = document.createElement("div");
+      let result = "foo";
+
+      const Entity = entity<string, number, never>(() => ({
+        mount: ({ parameter }) => result + parameter,
+        reduce: ({ state }) => {
+          return state;
+        },
+      }));
+
+      const component = plusnew.render(
+        <Repository>
+          <Entity parameters={[0]}>
+            {({ views: [view], invalidateCache }) => (
+              <section
+                onclick={invalidateCache}
+                data-test-id="without-cachebreaker"
+              >
+                {view}
+              </section>
+            )}
+          </Entity>
+        </Repository>,
+        {
+          driver: driver(container),
+        }
+      );
+
+      const withoutCachebreaker = container.querySelector(
+        '[data-test-id="without-cachebreaker"]'
+      ) as Element;
+
+      expect(withoutCachebreaker.textContent).to.equal("foo0");
+
+      result = "bar";
+      withoutCachebreaker.dispatchEvent(new MouseEvent("click"));
+
+      expect(withoutCachebreaker.textContent).to.equal("bar0");
+
+      component.remove(false);
+    });
   });
 });

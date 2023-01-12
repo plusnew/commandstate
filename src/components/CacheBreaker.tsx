@@ -21,9 +21,10 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
         events: dataContextProviderInstanceState.events,
         getState: (request) => {
           const serializedParameter = JSON.stringify(request.parameter);
+
           const entityHandlerCache =
             cacheGuardSeen.get(request.entityHandler) ?? {};
-          const seen = entityHandlerCache[serializedParameter];
+          const seen = entityHandlerCache[serializedParameter] ?? false;
 
           if (seen === false) {
             cacheGuardSeen.set(request.entityHandler, {
@@ -34,7 +35,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
 
           return dataContextProviderInstanceState.getState({
             ...request,
-            forceCacheRefresh: seen === false,
+            forceCacheRefresh: request.forceCacheRefresh || seen === false,
           });
         },
         getEntityHandler: dataContextProviderInstanceState.getEntityHandler,
