@@ -30,7 +30,8 @@ export default class Merge extends Component<props> {
     const dataContextProviderInstanceState = dataContextInstance.getState();
 
     const onchangeCallback = () => {
-      this.events.dispatch(dataContextProviderInstanceState.events);
+      // The reference of the datastore events should be broken, because this thing needs to be able to able to be mutated
+      this.events.dispatch([...dataContextProviderInstanceState.events]);
     };
     dataContextProviderInstanceState.addOnchangeListener(onchangeCallback);
     componentInstance.registerLifecycleHook("componentWillUnmount", () =>
