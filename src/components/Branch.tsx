@@ -108,7 +108,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
         } else if (type === "merge") {
           for (let i = events.length - 1; i >= 0; i--) {
             if (newEvents.includes(events[i])) {
-              events.splice(i, 1);
+              events.splice(i - 1, 1);
             }
           }
 
