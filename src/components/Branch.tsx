@@ -106,7 +106,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
           events.push(...newEvents);
           onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
         } else if (type === "merge") {
-          for (let i = 0; i < events.length; i++) {
+          for (let i = events.length - 1; i >= 0; i--) {
             if (newEvents.includes(events[i])) {
               events.splice(i, 1);
             }
