@@ -118,10 +118,10 @@ describe("api", () => {
     expect(branchlessFirstButton.textContent).to.equal("2");
     expect(branchlessSecondButton.textContent).to.equal("5");
 
-    branchedFirstButton.dispatchEvent(new MouseEvent("click"));
+    branchedSecondButton.dispatchEvent(new MouseEvent("click"));
 
-    expect(branchedFirstButton.textContent).to.equal("3");
-    expect(branchedSecondButton.textContent).to.equal("5");
+    expect(branchedFirstButton.textContent).to.equal("2");
+    expect(branchedSecondButton.textContent).to.equal("6");
     expect(branchlessFirstButton.textContent).to.equal("2");
     expect(branchlessSecondButton.textContent).to.equal("5");
 

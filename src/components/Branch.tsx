@@ -15,10 +15,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
     dataContext.findProvider(componentInstance);
   const dataContextProviderInstanceState =
     dataContextProviderInstance.getState();
-  const state = new Map<
-    EntityHandler<any, any, any>,
-    EntityHandlerBranch<any>
-  >();
+  let state = new Map<EntityHandler<any, any, any>, EntityHandlerBranch<any>>();
   const events: unknown[] = [];
   let onchangeCallbacks: (() => void)[] = [];
   const onchangeCallback = () => {
@@ -111,6 +108,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
               events.splice(i, 1);
             }
           }
+          state = new Map();
 
           dataContextProviderInstance.dispatch(["commit", newEvents]);
         } else {
