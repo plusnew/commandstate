@@ -19,7 +19,7 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
     EntityHandler<any, any, any>,
     EntityHandlerBranch<any>
   >();
-  let events: unknown[] = [];
+  const events: unknown[] = [];
   let onchangeCallbacks: (() => void)[] = [];
   const onchangeCallback = () => {
     onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
@@ -106,9 +106,12 @@ export default component("Branch", (Props: Props<props>, componentInstance) => {
           events.push(...newEvents);
           onchangeCallbacks.forEach((onchangeCallback) => onchangeCallback());
         } else if (type === "merge") {
-          events = events.filter(
-            (event) => newEvents.includes(event) === false
-          );
+          for (let i = 0; i < events.length; i++) {
+            if (newEvents.includes(events[i])) {
+              events.splice(i, 1);
+            }
+          }
+
           dataContextProviderInstance.dispatch(["commit", newEvents]);
         } else {
           throw new UnreachableError(type);

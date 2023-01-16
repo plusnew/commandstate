@@ -77,6 +77,7 @@ export default function entity<T, U, V>(
     }
 
     componentWillUnmount() {
+      this.views = [];
       this.dataContextInstanceState.removeOnchangeListener(
         this.onchangeCallback
       );
