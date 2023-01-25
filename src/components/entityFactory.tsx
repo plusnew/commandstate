@@ -88,8 +88,16 @@ export default function entity<T, U, V>(
         <Props>
           {(props) => (
             <this.refresh.Observer>
-              {() =>
-                ((props.children as any)[0] as props["children"])({
+              {() => {
+                this.views = props.parameters.map(
+                  (parameter) =>
+                    this.dataContextInstanceState.getState({
+                      entityHandler: this.entityHandler,
+                      parameter,
+                      forceCacheRefresh: false,
+                    }).state
+                );
+                return ((props.children as any)[0] as props["children"])({
                   views: this.views,
                   dispatch: (events) =>
                     this.dataContextInstanceDispatch(["commit", events]),
@@ -101,8 +109,8 @@ export default function entity<T, U, V>(
                         forceCacheRefresh: true,
                       })
                     ),
-                })
-              }
+                });
+              }}
             </this.refresh.Observer>
           )}
         </Props>
