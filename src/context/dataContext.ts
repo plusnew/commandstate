@@ -1,4 +1,4 @@
-import { context } from "@plusnew/core";
+import type { Signal } from "@preact/signals-core";
 
 export type EntityHandlerFactory<T, U, V> = () => EntityHandler<T, U, V>;
 
@@ -8,22 +8,20 @@ export type EntityHandler<T, U, V> = {
     state: T | null;
     dispatch: (events: V[]) => void;
   }) => T;
-  reduce: (context: { event: unknown; parameter: U; state: T }) => T;
+  reduce: (context: { command: unknown; parameter: U; state: T }) => T;
 };
 
-export type DataContextState = {
+export type DataProvider = {
   getState: <T, U, V>(request: {
-    entityHandler: EntityHandler<T, U, V>;
+    entityHandlerFactory: EntityHandlerFactory<T, U, V>;
     parameter: U;
     forceCacheRefresh: boolean;
-  }) => { state: T; originalParameter: U };
-  getEntityHandler: <T, U, V>(
-    entityHandlerFactory: EntityHandlerFactory<T, U, V>
-  ) => EntityHandler<T, U, V>;
-  events: unknown[];
-  addOnchangeListener: (cb: () => void) => void;
-  removeOnchangeListener: (cb: () => void) => void;
+  }) => {
+    entityHandler: EntityHandler<T, U, V>;
+    state: Signal<T>;
+    originalParameter: U;
+  };
+  dispatch: (type: "commit" | "merge", events: unknown) => void;
+  commands: Signal<unknown[]>;
 };
 export type DataContextAction = ["commit" | "merge", unknown[]];
-
-export default context<DataContextState, DataContextAction>();
