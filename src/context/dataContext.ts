@@ -6,22 +6,19 @@ export type EntityHandler<T, U, V> = {
   mount: (context: {
     parameter: U;
     state: T | null;
-    dispatch: (events: V[]) => void;
+    merge: (events: V[]) => void;
   }) => T;
   reduce: (context: { command: unknown; parameter: U; state: T }) => T;
 };
 
 export type DataProvider = {
   getState: <T, U, V>(request: {
-    entityHandlerFactory: EntityHandlerFactory<T, U, V>;
-    parameter: U;
-    forceCacheRefresh: boolean;
-  }) => {
     entityHandler: EntityHandler<T, U, V>;
-    state: Signal<T>;
-    originalParameter: U;
-  };
-  dispatch: (type: "commit" | "merge", events: unknown) => void;
-  commands: Signal<unknown[]>;
+    entityHandlerIdentifier: symbol;
+    parameter: U;
+    // forceCacheRefresh: boolean;
+  }) => Signal<T>;
+  commands: unknown[];
+  commit: (command: unknown[]) => void;
+  merge: (command: unknown[]) => void;
 };
-export type DataContextAction = ["commit" | "merge", unknown[]];
