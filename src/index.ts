@@ -15,7 +15,7 @@ type EntityHandler<T, U> = {
   reduce: (context: { command: unknown; parameter: U; state: T }) => T;
 };
 
-type DataProvider = {
+export type DataProvider = {
   getState: <T, U>(request: {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
