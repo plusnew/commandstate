@@ -10,22 +10,20 @@ describe("api", () => {
         this.payload = { id };
       }
     }
-    const entity = createEntity<
-      { id: number; value: number },
-      { id: number },
-      Increment
-    >(() => ({
-      mount: ({ parameter }) => ({ id: parameter.id, value: parameter.id }),
-      reduce: ({ state, command, parameter }) => {
-        if (
-          command instanceof Increment &&
-          command.payload.id === parameter.id
-        ) {
-          return { id: state.id, value: state.value + 1 };
-        }
-        return state;
-      },
-    }));
+    const entity = createEntity<{ id: number; value: number }, { id: number }>(
+      () => ({
+        mount: ({ parameter }) => ({ id: parameter.id, value: parameter.id }),
+        reduce: ({ state, command, parameter }) => {
+          if (
+            command instanceof Increment &&
+            command.payload.id === parameter.id
+          ) {
+            return { id: state.id, value: state.value + 1 };
+          }
+          return state;
+        },
+      })
+    );
 
     const repository = createRepository();
     const branch = createBranch(repository);

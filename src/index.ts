@@ -1,15 +1,43 @@
 import type { ReadonlySignal, Signal } from "@preact/signals-core";
 import { computed } from "@preact/signals-core";
 import { signal } from "@preact/signals-core";
-import type { DataProvider, EntityHandler } from "./context/dataContext";
+
+type EntityHandlerFactory<T, U> = () => EntityHandler<T, U>;
+
+type EntityHandler<T, U> = {
+  mount: (context: {
+    parameter: U;
+    state: T | null;
+    merge: (events: unknown[]) => void;
+  }) => T;
+  reduce: (context: { command: unknown; parameter: U; state: T }) => T;
+};
+
+type DataProvider = {
+  getState: <T, U>(request: {
+    entityHandler: EntityHandler<T, U>;
+    parameter: U;
+    // forceCacheRefresh: boolean;
+  }) => Signal<T>;
+  getEntityHandler: <T, U>(
+    EntityHandlerFactory: EntityHandlerFactory<T, U>
+  ) => EntityHandler<T, U>;
+  commands: unknown[];
+  commit: (command: unknown[]) => void;
+  merge: (command: unknown[]) => void;
+};
 
 export function createRepository(): Signal<DataProvider> {
-  const dataProviderState: {
-    [entityHandlerIdentifier: symbol]: {
-      [request: string]: { value: Signal<any>; index: number };
-    };
-  } = {};
+  const dataProviderState = new Map<
+    EntityHandler<any, any>,
+    { [request: string]: { value: Signal<any>; index: number } }
+  >();
   const commands = signal([] as unknown[]);
+
+  const entityHandlers = new Map<
+    EntityHandlerFactory<any, any>,
+    EntityHandler<any, any>
+  >();
 
   const commit = (newCommands: unknown[]) => {
     commands.value = [...commands.value, ...newCommands];
@@ -19,19 +47,27 @@ export function createRepository(): Signal<DataProvider> {
     throw new Error("not yet implemtend");
   };
 
-  const getState = <T, U, V>(request: {
-    entityHandler: EntityHandler<T, U, V>;
-    entityHandlerIdentifier: symbol;
+  const getEntityHandler = function (
+    entityHandlerFactory: EntityHandlerFactory<any, any>
+  ) {
+    let entityHandler = entityHandlers.get(entityHandlerFactory);
+    if (entityHandler === undefined) {
+      entityHandler = entityHandlerFactory();
+      entityHandlers.set(entityHandlerFactory, entityHandler);
+    }
+    return entityHandler;
+  };
+
+  const getState = <T, U>(request: {
+    entityHandler: EntityHandler<T, U>;
     parameter: U;
     // forceCacheRefresh: boolean;
   }): ReadonlySignal<T> => {
-    let dataProviderStateValue =
-      dataProviderState[request.entityHandlerIdentifier];
+    let dataProviderStateValue = dataProviderState.get(request.entityHandler);
 
     if (dataProviderStateValue === undefined) {
       dataProviderStateValue = {};
-      dataProviderState[request.entityHandlerIdentifier] =
-        dataProviderStateValue;
+      dataProviderState.set(request.entityHandler, dataProviderStateValue);
     }
 
     const serializedParameter = JSON.stringify(request.parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
@@ -68,6 +104,7 @@ export function createRepository(): Signal<DataProvider> {
 
   return computed(() => ({
     commands: commands.value,
+    getEntityHandler,
     commit,
     merge,
     getState,
@@ -78,10 +115,12 @@ export function createBranch(
   dataProvider: Signal<DataProvider>
 ): Signal<DataProvider> {
   const commands = signal([] as unknown[]);
+  const getEntityHandler = dataProvider.value.getEntityHandler;
 
-  const dataProviderState: {
-    [entityHandlerIdentifier: symbol]: { [request: string]: Signal<any> };
-  } = {};
+  const dataProviderState = new Map<
+    EntityHandler<any, any>,
+    { [request: string]: Signal<any> }
+  >();
 
   const commit = (newCommands: unknown[]) => {
     commands.value = [...commands.value, ...newCommands];
@@ -91,19 +130,16 @@ export function createBranch(
     throw new Error("not yet implemtend");
   };
 
-  const getState = <T, U, V>(request: {
-    entityHandler: EntityHandler<T, U, V>;
-    entityHandlerIdentifier: symbol;
+  const getState = <T, U>(request: {
+    entityHandler: EntityHandler<T, U>;
     parameter: U;
     // forceCacheRefresh: boolean;
   }): ReadonlySignal<T> => {
-    let dataProviderStateValue =
-      dataProviderState[request.entityHandlerIdentifier];
+    let dataProviderStateValue = dataProviderState.get(request.entityHandler);
 
     if (dataProviderStateValue === undefined) {
       dataProviderStateValue = {};
-      dataProviderState[request.entityHandlerIdentifier] =
-        dataProviderStateValue;
+      dataProviderState.set(request.entityHandler, dataProviderStateValue);
     }
 
     const serializedParameter = JSON.stringify(request.parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
@@ -126,25 +162,29 @@ export function createBranch(
 
   return computed(() => ({
     commands: commands.value,
+    getEntityHandler,
     commit,
     merge,
     getState,
   }));
 }
 
-export function createEntity<T, U, V>(
-  entityHandlerFactory: () => EntityHandler<T, U, V>
+export function createEntity<T, U>(
+  entityHandlerFactory: () => EntityHandler<T, U>
 ) {
-  const entityHandler = entityHandlerFactory();
-  const entityHandlerIdentifier = Symbol();
+  return function (
+    this: any,
+    dataProvider: Signal<DataProvider>,
+    parameter: U
+  ) {
+    const entityHandler =
+      dataProvider.value.getEntityHandler(entityHandlerFactory);
 
-  return (dataProvider: Signal<DataProvider>, parameter: U) => {
     return computed(
       () =>
-        dataProvider.value.getState<T, U, V>({
+        dataProvider.value.getState<T, U>({
           parameter,
           entityHandler,
-          entityHandlerIdentifier,
         }).value
     );
   };
