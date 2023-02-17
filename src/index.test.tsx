@@ -36,7 +36,7 @@ describe("api", () => {
     let firstNestedExpectedResult = 1;
     let firstNestedEffectCounter = 0;
     let secondEffectCounter = 0;
-    const firstNotNestedExpectedResult = 1;
+    let firstNotNestedExpectedResult = 1;
     let firstNotNestedEffectCounter = 0;
 
     const disconnectFirstNested = effect(() => {
@@ -68,6 +68,14 @@ describe("api", () => {
     expect(firstNestedEffectCounter).to.equal(2);
     expect(secondEffectCounter).to.equal(1);
     expect(firstNotNestedEffectCounter).to.equal(1);
+
+    firstNestedExpectedResult = 2;
+    firstNotNestedExpectedResult = 2;
+    branch.value.merge(branch.value.commands);
+
+    expect(firstNestedEffectCounter).to.equal(3);
+    expect(secondEffectCounter).to.equal(1);
+    expect(firstNotNestedEffectCounter).to.equal(2);
 
     disconnectFirstNested();
     disconnectSecond();

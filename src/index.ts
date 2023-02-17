@@ -1,4 +1,6 @@
 import type { ReadonlySignal, Signal } from "@preact/signals-core";
+import { effect } from "@preact/signals-core";
+import { batch } from "@preact/signals-core";
 import { computed } from "@preact/signals-core";
 import { signal } from "@preact/signals-core";
 
@@ -30,7 +32,7 @@ type DataProvider = {
 export function createRepository(): Signal<DataProvider> {
   const dataProviderState = new Map<
     EntityHandler<any, any>,
-    { [request: string]: { value: Signal<any>; index: number } }
+    { [request: string]: { signal: Signal<any>; index: number } }
   >();
   const commands = signal([] as unknown[]);
 
@@ -73,8 +75,10 @@ export function createRepository(): Signal<DataProvider> {
     const serializedParameter = JSON.stringify(request.parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
 
     if (serializedParameter in dataProviderStateValue === false) {
-      dataProviderStateValue[serializedParameter] = {
-        value: signal(
+      const dataProviderStateValueRequest = (dataProviderStateValue[
+        serializedParameter
+      ] = {
+        signal: signal(
           request.entityHandler.mount({
             parameter: request.parameter,
             state: null,
@@ -82,24 +86,25 @@ export function createRepository(): Signal<DataProvider> {
           })
         ),
         index: commands.peek().length,
-      };
+      });
 
-      while (
-        dataProviderStateValue[serializedParameter].index <
-        commands.value.length
-      ) {
-        dataProviderStateValue[serializedParameter].value.value =
-          request.entityHandler.reduce({
-            command:
-              commands.value[dataProviderStateValue[serializedParameter].index],
-            parameter: request.parameter,
-            state: dataProviderStateValue[serializedParameter].value.value,
-          });
+      effect(() => {
+        batch(() => {
+          while (dataProviderStateValueRequest.index < commands.value.length) {
+            dataProviderStateValueRequest.signal.value =
+              request.entityHandler.reduce({
+                command: commands.value[dataProviderStateValueRequest.index],
+                parameter: request.parameter,
+                state: dataProviderStateValueRequest.signal.value,
+              });
 
-        dataProviderStateValue[serializedParameter].index++;
-      }
+            dataProviderStateValueRequest.index++;
+          }
+        });
+      });
     }
-    return dataProviderStateValue[serializedParameter].value;
+
+    return dataProviderStateValue[serializedParameter].signal;
   };
 
   return computed(() => ({
@@ -126,8 +131,13 @@ export function createBranch(
     commands.value = [...commands.value, ...newCommands];
   };
 
-  const merge = (_commands: unknown[]) => {
-    throw new Error("not yet implemtend");
+  const merge = (mergedCommands: unknown[]) => {
+    batch(() => {
+      commands.value = commands.value.filter(
+        (command) => mergedCommands.includes(command) === false
+      );
+      dataProvider.value.commit(mergedCommands);
+    });
   };
 
   const getState = <T, U>(request: {
