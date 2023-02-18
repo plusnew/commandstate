@@ -1,5 +1,5 @@
 import { expect } from "@esm-bundle/chai";
-import { effect } from "@preact/signals-core";
+import { effect, signal } from "@preact/signals-core";
 import {
   createBranch,
   createCacheBreaker,
@@ -18,7 +18,8 @@ describe("api", () => {
 
     const entity = createEntity<{ id: number; value: number }, { id: number }>(
       () => ({
-        mount: ({ parameter }) => ({ id: parameter.id, value: parameter.id }),
+        mount: ({ parameter }) =>
+          signal({ id: parameter.id, value: parameter.id }),
         reduce: ({ state, command, parameter }) => {
           if (
             command instanceof Increment &&
@@ -93,10 +94,11 @@ describe("api", () => {
     let entityResultEffectCounter = 0;
     const entity = createEntity<{ id: number; value: number }, { id: number }>(
       () => ({
-        mount: ({ parameter }) => ({
-          id: parameter.id,
-          value: entityResultExpectedResult,
-        }),
+        mount: ({ parameter }) =>
+          signal({
+            id: parameter.id,
+            value: entityResultExpectedResult,
+          }),
         reduce: ({ state }) => {
           return state;
         },

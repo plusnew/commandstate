@@ -7,11 +7,7 @@ import { signal } from "@preact/signals-core";
 type EntityHandlerFactory<T, U> = () => EntityHandler<T, U>;
 
 type EntityHandler<T, U> = {
-  mount: (context: {
-    parameter: U;
-    state: T | null;
-    merge: (events: unknown[]) => void;
-  }) => T;
+  mount: (context: { parameter: U; state: T | null }) => Signal<T>;
   reduce: (context: { command: unknown; parameter: U; state: T }) => T;
 };
 
@@ -20,7 +16,7 @@ export type DataProvider = {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
     forceCacheRefresh: boolean;
-  }) => Signal<T>;
+  }) => ReadonlySignal<T>;
   getEntityHandler: <T, U>(
     EntityHandlerFactory: EntityHandlerFactory<T, U>
   ) => EntityHandler<T, U>;
@@ -32,7 +28,7 @@ export type DataProvider = {
 export function createRepository(): Signal<DataProvider> {
   const dataProviderState = new Map<
     EntityHandler<any, any>,
-    { [request: string]: { signal: Signal<any>; index: number } }
+    { [request: string]: { signal: Signal<Signal<any>>; index: number } }
   >();
   const commands = signal([] as unknown[]);
 
@@ -82,7 +78,6 @@ export function createRepository(): Signal<DataProvider> {
           request.entityHandler.mount({
             parameter: request.parameter,
             state: null,
-            merge: commit,
           })
         ),
         index: commands.peek().length,
@@ -91,11 +86,11 @@ export function createRepository(): Signal<DataProvider> {
       effect(() =>
         batch(() => {
           while (dataProviderStateValueRequest.index < commands.value.length) {
-            dataProviderStateValueRequest.signal.value =
+            dataProviderStateValueRequest.signal.value.value =
               request.entityHandler.reduce({
                 command: commands.value[dataProviderStateValueRequest.index],
                 parameter: request.parameter,
-                state: dataProviderStateValueRequest.signal.value,
+                state: dataProviderStateValueRequest.signal.value.value,
               });
 
             dataProviderStateValueRequest.index++;
@@ -109,12 +104,11 @@ export function createRepository(): Signal<DataProvider> {
       dataProviderStateValue[serializedParameter].signal.value =
         request.entityHandler.mount({
           parameter: request.parameter,
-          state: dataProviderStateValue[serializedParameter].signal.value,
-          merge: commit,
+          state: dataProviderStateValue[serializedParameter].signal.value.value,
         });
     }
 
-    return dataProviderStateValue[serializedParameter].signal;
+    return dataProviderStateValue[serializedParameter].signal.value;
   };
 
   return computed(() => ({
