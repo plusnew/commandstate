@@ -15,8 +15,11 @@ export type DataProvider = {
   getState: <T, U>(request: {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
-    forceCacheRefresh: boolean;
   }) => ReadonlySignal<T>;
+  refreshCache: <T, U>(request: {
+    entityHandler: EntityHandler<T, U>;
+    parameter: U;
+  }) => void;
   getEntityHandler: <T, U>(
     EntityHandlerFactory: EntityHandlerFactory<T, U>
   ) => EntityHandler<T, U>;
@@ -59,7 +62,6 @@ export function createRepository(): Signal<DataProvider> {
   const getState = <T, U>(request: {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
-    forceCacheRefresh: boolean;
   }): ReadonlySignal<T> => {
     let dataProviderStateValue = dataProviderState.get(request.entityHandler);
 
@@ -97,18 +99,32 @@ export function createRepository(): Signal<DataProvider> {
           }
         })
       );
-    } else if (request.forceCacheRefresh === true) {
-      dataProviderStateValue[serializedParameter].index =
-        commands.peek().length;
-
-      dataProviderStateValue[serializedParameter].signal.value =
-        request.entityHandler.mount({
-          parameter: request.parameter,
-          state: dataProviderStateValue[serializedParameter].signal.value.value,
-        });
     }
 
     return dataProviderStateValue[serializedParameter].signal.value;
+  };
+
+  const refreshCache = <T, U>(request: {
+    entityHandler: EntityHandler<T, U>;
+    parameter: U;
+  }) => {
+    const dataProviderStateValue = dataProviderState.get(request.entityHandler);
+
+    if (dataProviderStateValue !== undefined) {
+      const serializedParameter = JSON.stringify(request.parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
+
+      if (serializedParameter in dataProviderStateValue) {
+        dataProviderStateValue[serializedParameter].index =
+          commands.peek().length;
+
+        dataProviderStateValue[serializedParameter].signal.value =
+          request.entityHandler.mount({
+            parameter: request.parameter,
+            state:
+              dataProviderStateValue[serializedParameter].signal.value.value,
+          });
+      }
+    }
   };
 
   return computed(() => ({
@@ -117,6 +133,7 @@ export function createRepository(): Signal<DataProvider> {
     commit,
     merge,
     getState,
+    refreshCache,
   }));
 }
 
@@ -125,6 +142,7 @@ export function createBranch(
 ): Signal<DataProvider> {
   const commands = signal([] as unknown[]);
   const getEntityHandler = dataProvider.value.getEntityHandler;
+  const refreshCache = dataProvider.value.refreshCache;
 
   const dataProviderState = new Map<
     EntityHandler<any, any>,
@@ -147,7 +165,6 @@ export function createBranch(
   const getState = <T, U>(request: {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
-    forceCacheRefresh: boolean;
   }): ReadonlySignal<T> => {
     let dataProviderStateValue = dataProviderState.get(request.entityHandler);
 
@@ -180,6 +197,7 @@ export function createBranch(
     commit,
     merge,
     getState,
+    refreshCache,
   }));
 }
 
@@ -187,11 +205,11 @@ export function createCacheBreaker(
   dataProvider: Signal<DataProvider>
 ): Signal<DataProvider> {
   const cache = new Map<EntityHandler<any, any>, string[]>();
+  const refreshCache = dataProvider.value.refreshCache;
 
   const getState = <T, U>(request: {
     entityHandler: EntityHandler<T, U>;
     parameter: U;
-    forceCacheRefresh: boolean;
   }): ReadonlySignal<T> => {
     const serializedParameter = JSON.stringify(request.parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
     let cacheValue = cache.get(request.entityHandler);
@@ -204,11 +222,9 @@ export function createCacheBreaker(
     const hasSeenRequest = cacheValue.includes(serializedParameter);
     if (hasSeenRequest === false) {
       cacheValue.push(serializedParameter);
+      refreshCache(request);
     }
-    return dataProvider.value.getState({
-      ...request,
-      forceCacheRefresh: hasSeenRequest === false,
-    });
+    return dataProvider.value.getState(request);
   };
 
   return computed(() => ({
@@ -217,6 +233,7 @@ export function createCacheBreaker(
     commit: dataProvider.value.commit,
     merge: dataProvider.value.merge,
     getState,
+    refreshCache,
   }));
 }
 
@@ -235,7 +252,6 @@ export function createEntity<T, U>(
       return dataProvider.value.getState<T, U>({
         parameter,
         entityHandler,
-        forceCacheRefresh: false,
       }).value;
     });
   };
