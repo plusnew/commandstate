@@ -1,6 +1,6 @@
 {
 	"name": "@plusnew/commandstate",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"description": "typesafe command query segregation state",
 	"main": "src/index.ts",
 	"module": "src/index.ts",

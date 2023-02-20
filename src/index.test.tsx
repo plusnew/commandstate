@@ -70,7 +70,7 @@ describe("api", () => {
     expect(firstNotNestedEffectCounter).to.equal(1);
 
     firstNestedExpectedResult = 2;
-    branch.value.commit([new Increment(1)]);
+    branch.commit([new Increment(1)]);
 
     expect(firstNestedEffectCounter).to.equal(2);
     expect(secondEffectCounter).to.equal(1);
@@ -78,7 +78,7 @@ describe("api", () => {
 
     firstNestedExpectedResult = 2;
     firstNotNestedExpectedResult = 2;
-    branch.value.merge(branch.value.commands);
+    branch.merge(branch.commands.value);
 
     expect(firstNestedEffectCounter).to.lessThanOrEqual(3);
     expect(secondEffectCounter).to.equal(1);
