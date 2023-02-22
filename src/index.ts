@@ -41,7 +41,7 @@ export function createRepository(): DataProvider {
   >();
 
   const commit = (newCommands: unknown[]) => {
-    commands.value = [...commands.value, ...newCommands];
+    commands.value = [...commands.peek(), ...newCommands];
   };
 
   const merge = (_commands: unknown[]) => {
@@ -92,7 +92,7 @@ export function createRepository(): DataProvider {
               request.entityHandler.reduce({
                 command: commands.value[dataProviderStateValueRequest.index],
                 parameter: request.parameter,
-                state: dataProviderStateValueRequest.signal.value.value,
+                state: dataProviderStateValueRequest.signal.peek().peek(),
               });
 
             dataProviderStateValueRequest.index++;
@@ -146,14 +146,14 @@ export function createBranch(dataProvider: DataProvider): DataProvider {
   >();
 
   const commit = (newCommands: unknown[]) => {
-    commands.value = [...commands.value, ...newCommands];
+    commands.value = [...commands.peek(), ...newCommands];
   };
 
   const merge = (mergedCommands: unknown[]) => {
     batch(() => {
-      commands.value = commands.value.filter(
-        (command) => mergedCommands.includes(command) === false
-      );
+      commands.value = commands
+        .peek()
+        .filter((command) => mergedCommands.includes(command) === false);
       dataProvider.commit(mergedCommands);
     });
   };
