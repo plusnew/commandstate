@@ -1,6 +1,6 @@
 {
 	"name": "@plusnew/commandstate",
-	"version": "2.3.2",
+	"version": "2.3.3",
 	"description": "typesafe command query segregation state",
 	"main": "src/index.ts",
 	"module": "src/index.ts",
@@ -14,18 +14,18 @@
 	],
 	"author": "Carlo Jeske",
 	"peerDependencies": {
-		"@preact/signals-core": "1.2.3"
+		"@preact/signals-core": "^1.7.0"
 	},
 	"devDependencies": {
 		"@esm-bundle/chai": "^4.3.4-fix.0",
-		"@typescript-eslint/eslint-plugin": "^5.30.6",
-		"@typescript-eslint/parser": "^5.30.6",
-		"@web/dev-server-esbuild": "^0.3.1",
+		"@typescript-eslint/eslint-plugin": "^5.62.0",
+		"@typescript-eslint/parser": "^5.62.0",
+		"@web/dev-server-esbuild": "^0.3.6",
 		"@web/test-runner": "^0.13.31",
-		"eslint": "^8.19.0",
-		"eslint-config-prettier": "^8.5.0",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^8.10.0",
 		"eslint-plugin-prettier": "^4.2.1",
-		"prettier": "^2.7.1",
-		"typescript": "^4.7.4"
+		"prettier": "^2.8.8",
+		"typescript": "^4.9.5"
 	}
 }
