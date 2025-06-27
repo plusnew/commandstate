@@ -18,6 +18,7 @@ export type DataProvider = {
     parameter: U
   ) => ReadonlySignal<T>;
   invalidateCache: <T, U>(
+    invalidate: boolean,
     entityHandler: EntityHandler<T, U>,
     parameter?: U
   ) => void;
@@ -120,7 +121,9 @@ export function createRepository(): DataProvider {
       dataProviderStateValue[serializedParameter].signal.value =
         entityHandler.mount({
           parameter: parameter,
-          state: null,
+          state: dataProviderStateValue[serializedParameter].signal
+            .peek()
+            .peek(),
         });
     }
 
@@ -128,29 +131,33 @@ export function createRepository(): DataProvider {
     return dataProviderStateValue[serializedParameter].signal.value;
   };
 
-  const invalidateCache = function <T, U>(
+  function invalidateCache<T, U>(
+    invalidate: boolean,
     entityHandler: EntityHandler<T, U>,
     parameter?: U
   ) {
-    const dataProviderStateValue = dataProviderState.get(entityHandler);
+    if (invalidate) {
+      const dataProviderStateValue = dataProviderState.get(entityHandler);
 
-    if (dataProviderStateValue !== undefined) {
-      if (arguments.length > 1) {
-        const serializedParameter = JSON.stringify(parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
+      if (dataProviderStateValue !== undefined) {
+        if (arguments.length > 2) {
+          const serializedParameter = JSON.stringify(parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
 
-        if (serializedParameter in dataProviderStateValue) {
-          dataProviderStateValue[serializedParameter].cacheValid.value = false;
-        }
-      } else {
-        batch(() => {
-          for (const serializedParameter in dataProviderStateValue) {
+          if (serializedParameter in dataProviderStateValue) {
             dataProviderStateValue[serializedParameter].cacheValid.value =
               false;
           }
-        });
+        } else {
+          batch(() => {
+            for (const serializedParameter in dataProviderStateValue) {
+              dataProviderStateValue[serializedParameter].cacheValid.value =
+                false;
+            }
+          });
+        }
       }
     }
-  };
+  }
 
   return {
     commands,
@@ -224,11 +231,11 @@ export function createBranch(dataProvider: DataProvider): DataProvider {
 
 export function createCacheBreaker(dataProvider: DataProvider): DataProvider {
   const cache = new Map<EntityHandler<any, any>, string[]>();
-
-  const getState = <T, U>(
+  function invalidateCache<T, U>(
+    invalidate: boolean,
     entityHandler: EntityHandler<T, U>,
-    parameter: U
-  ): ReadonlySignal<T> => {
+    parameter?: U
+  ) {
     const serializedParameter = JSON.stringify(parameter); // @TODO improve serializer, stringify doesn always produce the same results in case of different orders
     let cacheValue = cache.get(entityHandler);
 
@@ -239,19 +246,23 @@ export function createCacheBreaker(dataProvider: DataProvider): DataProvider {
 
     const hasSeenRequest = cacheValue.includes(serializedParameter);
     if (hasSeenRequest === false) {
+      invalidate = true;
       cacheValue.push(serializedParameter);
-      dataProvider.invalidateCache(entityHandler, parameter);
     }
-    return dataProvider.getState(entityHandler, parameter);
-  };
+    if (arguments.length > 2) {
+      dataProvider.invalidateCache(invalidate, entityHandler, parameter);
+    } else {
+      dataProvider.invalidateCache(invalidate, entityHandler);
+    }
+  }
 
   return {
-    invalidateCache: dataProvider.invalidateCache,
+    invalidateCache: invalidateCache,
     commands: dataProvider.commands,
     getEntityHandler: dataProvider.getEntityHandler,
     commit: dataProvider.commit,
     merge: dataProvider.merge,
-    getState,
+    getState: dataProvider.getState,
   };
 }
 
@@ -260,18 +271,17 @@ export function createEntity<T, U>(
 ) {
   const get = function (this: any, dataProvider: DataProvider, parameter: U) {
     const entityHandler = dataProvider.getEntityHandler(entityHandlerFactory);
+    dataProvider.invalidateCache(false, entityHandler, parameter);
 
-    return computed(() => {
-      return dataProvider.getState<T, U>(entityHandler, parameter).value;
-    });
+    return dataProvider.getState<T, U>(entityHandler, parameter).value;
   };
 
   get.invalidateCache = function (dataProvider: DataProvider, parameter?: U) {
     const entityHandler = dataProvider.getEntityHandler(entityHandlerFactory);
     if (arguments.length > 1) {
-      dataProvider.invalidateCache(entityHandler, parameter as U);
+      dataProvider.invalidateCache(true, entityHandler, parameter as U);
     } else {
-      dataProvider.invalidateCache(entityHandler);
+      dataProvider.invalidateCache(true, entityHandler);
     }
   };
   return get;

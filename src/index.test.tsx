@@ -1,5 +1,5 @@
 import { expect } from "@esm-bundle/chai";
-import { effect, signal } from "@preact/signals-core";
+import { computed, effect, signal } from "@preact/signals-core";
 import {
   createBranch,
   createCacheBreaker,
@@ -34,11 +34,13 @@ describe("api", () => {
 
     const repository = createRepository();
     const branch = createBranch(repository);
-    const firstNested = entity(branch, {
-      id: 1,
-    });
-    const secondNested = entity(branch, { id: 3 });
-    const firstNotNested = entity(repository, { id: 1 });
+    const firstNested = computed(() =>
+      entity(branch, {
+        id: 1,
+      })
+    );
+    const secondNested = computed(() => entity(branch, { id: 3 }));
+    const firstNotNested = computed(() => entity(repository, { id: 1 }));
 
     let firstNestedExpectedResult = 1;
     let firstNestedEffectCounter = 0;
@@ -105,7 +107,7 @@ describe("api", () => {
       })
     );
     const repository = createRepository();
-    const entityResult = entity(repository, { id: 1 });
+    const entityResult = computed(() => entity(repository, { id: 1 }));
 
     const disconnectEntityResultDisconnect = effect(() => {
       entityResultEffectCounter++;
@@ -120,7 +122,7 @@ describe("api", () => {
     const cachebreaker = createCacheBreaker(repository);
     entityResultExpectedResult = 10;
 
-    const unrelatedEntity = entity(cachebreaker, { id: 2 });
+    const unrelatedEntity = computed(() => entity(cachebreaker, { id: 2 }));
 
     // When cachebreaker has seen an unrelated entity, it should not trigger anything
     expect(unrelatedEntity.value).to.deep.equal({
@@ -129,7 +131,7 @@ describe("api", () => {
     });
     expect(entityResultEffectCounter).to.equal(1);
 
-    const cachebrokenEntity = entity(cachebreaker, { id: 1 });
+    const cachebrokenEntity = computed(() => entity(cachebreaker, { id: 1 }));
 
     // When cachebreaker sees a request for the first time, it should force remount
     expect(cachebrokenEntity.value).to.deep.equal({
@@ -140,7 +142,7 @@ describe("api", () => {
 
     entityResultExpectedResult = 20;
 
-    const seenCacheBroken = entity(cachebreaker, { id: 1 });
+    const seenCacheBroken = computed(() => entity(cachebreaker, { id: 1 }));
     // When cachebreaker sees a request for another time, it should not trigger anything
     expect(seenCacheBroken.value).to.deep.equal({
       id: 1,
@@ -185,8 +187,8 @@ describe("api", () => {
 
     const repository = createRepository();
 
-    const entityResult1 = entity(repository, { id: 1 });
-    const entityResult2 = entity(repository, { id: 2 });
+    const entityResult1 = computed(() => entity(repository, { id: 1 }));
+    const entityResult2 = computed(() => entity(repository, { id: 2 }));
 
     expect(entityResult1.value.value).to.equal(1);
     expect(entityResult2.value.value).to.equal(1);
