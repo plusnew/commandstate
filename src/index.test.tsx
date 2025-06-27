@@ -150,4 +150,67 @@ describe("api", () => {
 
     disconnectEntityResultDisconnect();
   });
+
+  it("invalidate cache", () => {
+    class Increment {
+      public payload: { id: number };
+      constructor(id: number) {
+        this.payload = { id };
+      }
+    }
+
+    const mountIndex: { [id: number]: number } = {};
+
+    const entity = createEntity<{ id: number; value: number }, { id: number }>(
+      () => ({
+        mount: ({ parameter }) => {
+          if (parameter.id in mountIndex === false) {
+            mountIndex[parameter.id] = 0;
+          }
+          mountIndex[parameter.id]++;
+
+          return signal({ id: parameter.id, value: mountIndex[parameter.id] });
+        },
+        reduce: ({ state, command, parameter }) => {
+          if (
+            command instanceof Increment &&
+            command.payload.id === parameter.id
+          ) {
+            return { id: state.id, value: state.value + 1 };
+          }
+          return state;
+        },
+      })
+    );
+
+    const repository = createRepository();
+
+    const entityResult1 = entity(repository, { id: 1 });
+    const entityResult2 = entity(repository, { id: 2 });
+
+    expect(entityResult1.value.value).to.equal(1);
+    expect(entityResult2.value.value).to.equal(1);
+    expect(mountIndex[1]).to.equal(1);
+    expect(mountIndex[2]).to.equal(1);
+
+    entity.invalidateCache(repository, { id: 1 });
+
+    expect(mountIndex[1]).to.equal(1);
+    expect(mountIndex[2]).to.equal(1);
+    expect(entityResult1.value.value).to.equal(2);
+    expect(entityResult2.value.value).to.equal(1);
+    expect(mountIndex[1]).to.equal(2);
+    expect(mountIndex[2]).to.equal(1);
+
+    entity.invalidateCache(repository);
+
+    expect(mountIndex[1]).to.equal(2);
+    expect(mountIndex[2]).to.equal(1);
+
+    expect(entityResult1.value.value).to.equal(3);
+    expect(entityResult2.value.value).to.equal(2);
+
+    expect(mountIndex[1]).to.equal(3);
+    expect(mountIndex[2]).to.equal(2);
+  });
 });
