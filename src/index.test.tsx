@@ -1,5 +1,5 @@
 import { expect } from "@esm-bundle/chai";
-import { computed, effect, signal } from "@preact/signals-core";
+import { batch, computed, effect, signal } from "@preact/signals-core";
 import {
   createBranch,
   createCacheBreaker,
@@ -9,6 +9,8 @@ import {
 
 describe("api", () => {
   it("repository and branch handling", () => {
+    const repositoryCommands = signal<unknown[]>([]);
+    const branchCommands = signal<unknown[]>([]);
     class Increment {
       public payload: { id: number };
       constructor(id: number) {
@@ -32,8 +34,8 @@ describe("api", () => {
       })
     );
 
-    const repository = createRepository();
-    const branch = createBranch(repository);
+    const repository = createRepository(repositoryCommands);
+    const branch = createBranch(repository, branchCommands);
     const firstNested = computed(() =>
       entity(branch, {
         id: 1,
@@ -72,7 +74,7 @@ describe("api", () => {
     expect(firstNotNestedEffectCounter).to.equal(1);
 
     firstNestedExpectedResult = 2;
-    branch.commit([new Increment(1)]);
+    branchCommands.value = [new Increment(1)];
 
     expect(firstNestedEffectCounter).to.equal(2);
     expect(secondEffectCounter).to.equal(1);
@@ -80,7 +82,11 @@ describe("api", () => {
 
     firstNestedExpectedResult = 2;
     firstNotNestedExpectedResult = 2;
-    branch.merge(branch.commands.value);
+    batch(() => {
+      const commands = branchCommands.peek();
+      branchCommands.value = [];
+      repositoryCommands.value = commands;
+    });
 
     expect(firstNestedEffectCounter).to.lessThanOrEqual(3);
     expect(secondEffectCounter).to.equal(1);
@@ -92,6 +98,7 @@ describe("api", () => {
   });
 
   it("cachebreaker", () => {
+    const repositoryCommands = signal<unknown[]>([]);
     let entityResultExpectedResult = 5;
     let entityResultEffectCounter = 0;
     const entity = createEntity<{ id: number; value: number }, { id: number }>(
@@ -106,7 +113,7 @@ describe("api", () => {
         },
       })
     );
-    const repository = createRepository();
+    const repository = createRepository(repositoryCommands);
     const entityResult = computed(() => entity(repository, { id: 1 }));
 
     const disconnectEntityResultDisconnect = effect(() => {
@@ -154,6 +161,7 @@ describe("api", () => {
   });
 
   it("invalidate cache", () => {
+    const repositoryCommands = signal<unknown[]>([]);
     class Increment {
       public payload: { id: number };
       constructor(id: number) {
@@ -185,7 +193,7 @@ describe("api", () => {
       })
     );
 
-    const repository = createRepository();
+    const repository = createRepository(repositoryCommands);
 
     const entityResult1 = computed(() => entity(repository, { id: 1 }));
     const entityResult2 = computed(() => entity(repository, { id: 2 }));

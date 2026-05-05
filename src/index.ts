@@ -25,12 +25,11 @@ export type DataProvider = {
   getEntityHandler: <T, U>(
     EntityHandlerFactory: EntityHandlerFactory<T, U>
   ) => EntityHandler<T, U>;
-  commands: ReadonlySignal<unknown[]>;
-  commit: (command: unknown[]) => void;
-  merge: (command: unknown[]) => void;
 };
 
-export function createRepository(): DataProvider {
+export function createRepository(
+  commands: ReadonlySignal<unknown[]>
+): DataProvider {
   const dataProviderState = new Map<
     EntityHandler<any, any>,
     {
@@ -41,20 +40,11 @@ export function createRepository(): DataProvider {
       };
     }
   >();
-  const commands = signal([] as unknown[]);
 
   const entityHandlers = new Map<
     EntityHandlerFactory<any, any>,
     EntityHandler<any, any>
   >();
-
-  const commit = (newCommands: unknown[]) => {
-    commands.value = [...commands.peek(), ...newCommands];
-  };
-
-  const merge = (_commands: unknown[]) => {
-    throw new Error("not yet implemtend");
-  };
 
   const getEntityHandler = function (
     entityHandlerFactory: EntityHandlerFactory<any, any>
@@ -160,35 +150,20 @@ export function createRepository(): DataProvider {
   }
 
   return {
-    commands,
     getEntityHandler,
-    commit,
-    merge,
     getState,
     invalidateCache,
   };
 }
 
-export function createBranch(dataProvider: DataProvider): DataProvider {
-  const commands = signal([] as unknown[]);
-
+export function createBranch(
+  dataProvider: DataProvider,
+  commands: ReadonlySignal<unknown[]>
+): DataProvider {
   const dataProviderState = new Map<
     EntityHandler<any, any>,
     { [request: string]: Signal<any> }
   >();
-
-  const commit = (newCommands: unknown[]) => {
-    commands.value = [...commands.peek(), ...newCommands];
-  };
-
-  const merge = (mergedCommands: unknown[]) => {
-    batch(() => {
-      commands.value = commands
-        .peek()
-        .filter((command) => mergedCommands.includes(command) === false);
-      dataProvider.commit(mergedCommands);
-    });
-  };
 
   const getState = <T, U>(
     entityHandler: EntityHandler<T, U>,
@@ -220,9 +195,6 @@ export function createBranch(dataProvider: DataProvider): DataProvider {
   };
 
   return {
-    commands: commands,
-    commit,
-    merge,
     getState,
     getEntityHandler: dataProvider.getEntityHandler,
     invalidateCache: dataProvider.invalidateCache,
@@ -258,10 +230,7 @@ export function createCacheBreaker(dataProvider: DataProvider): DataProvider {
 
   return {
     invalidateCache: invalidateCache,
-    commands: dataProvider.commands,
     getEntityHandler: dataProvider.getEntityHandler,
-    commit: dataProvider.commit,
-    merge: dataProvider.merge,
     getState: dataProvider.getState,
   };
 }
