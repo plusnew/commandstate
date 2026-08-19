@@ -180,6 +180,8 @@ export function createBranch(
 
     if (serializedParameter in dataProviderStateValue === false) {
       dataProviderStateValue[serializedParameter] = computed(() => {
+        const value = dataProvider.getState(entityHandler, parameter).value;
+
         return commands.value.reduce<T>(
           (accumulator, command) =>
             entityHandler.reduce({
@@ -187,7 +189,7 @@ export function createBranch(
               parameter: parameter,
               state: accumulator,
             }),
-          dataProvider.getState(entityHandler, parameter).value
+          value
         );
       });
     }
