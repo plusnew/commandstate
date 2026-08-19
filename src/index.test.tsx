@@ -18,21 +18,19 @@ describe("api", () => {
       }
     }
 
-    const entity = createEntity<{ id: number; value: number }, { id: number }>(
-      () => ({
-        mount: ({ parameter }) =>
-          signal({ id: parameter.id, value: parameter.id }),
-        reduce: ({ state, command, parameter }) => {
-          if (
-            command instanceof Increment &&
-            command.payload.id === parameter.id
-          ) {
-            return { id: state.id, value: state.value + 1 };
-          }
-          return state;
-        },
-      })
-    );
+    const entity = createEntity<{ id: number; value: number }, { id: number }>({
+      mount: ({ parameter }) =>
+        signal({ id: parameter.id, value: parameter.id }),
+      reduce: ({ state, command, parameter }) => {
+        if (
+          command instanceof Increment &&
+          command.payload.id === parameter.id
+        ) {
+          return { id: state.id, value: state.value + 1 };
+        }
+        return state;
+      },
+    });
 
     const repository = createRepository(repositoryCommands);
     const branch = createBranch(repository, branchCommands);
@@ -101,18 +99,16 @@ describe("api", () => {
     const repositoryCommands = signal<unknown[]>([]);
     let entityResultExpectedResult = 5;
     let entityResultEffectCounter = 0;
-    const entity = createEntity<{ id: number; value: number }, { id: number }>(
-      () => ({
-        mount: ({ parameter }) =>
-          signal({
-            id: parameter.id,
-            value: entityResultExpectedResult,
-          }),
-        reduce: ({ state }) => {
-          return state;
-        },
-      })
-    );
+    const entity = createEntity<{ id: number; value: number }, { id: number }>({
+      mount: ({ parameter }) =>
+        signal({
+          id: parameter.id,
+          value: entityResultExpectedResult,
+        }),
+      reduce: ({ state }) => {
+        return state;
+      },
+    });
     const repository = createRepository(repositoryCommands);
     const entityResult = computed(() => entity(repository, { id: 1 }));
 
@@ -171,27 +167,25 @@ describe("api", () => {
 
     const mountIndex: { [id: number]: number } = {};
 
-    const entity = createEntity<{ id: number; value: number }, { id: number }>(
-      () => ({
-        mount: ({ parameter }) => {
-          if (parameter.id in mountIndex === false) {
-            mountIndex[parameter.id] = 0;
-          }
-          mountIndex[parameter.id]++;
+    const entity = createEntity<{ id: number; value: number }, { id: number }>({
+      mount: ({ parameter }) => {
+        if (parameter.id in mountIndex === false) {
+          mountIndex[parameter.id] = 0;
+        }
+        mountIndex[parameter.id]++;
 
-          return signal({ id: parameter.id, value: mountIndex[parameter.id] });
-        },
-        reduce: ({ state, command, parameter }) => {
-          if (
-            command instanceof Increment &&
-            command.payload.id === parameter.id
-          ) {
-            return { id: state.id, value: state.value + 1 };
-          }
-          return state;
-        },
-      })
-    );
+        return signal({ id: parameter.id, value: mountIndex[parameter.id] });
+      },
+      reduce: ({ state, command, parameter }) => {
+        if (
+          command instanceof Increment &&
+          command.payload.id === parameter.id
+        ) {
+          return { id: state.id, value: state.value + 1 };
+        }
+        return state;
+      },
+    });
 
     const repository = createRepository(repositoryCommands);
 
